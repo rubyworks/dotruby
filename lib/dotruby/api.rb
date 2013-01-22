@@ -18,9 +18,16 @@
 #
 module DotRuby
 
+  #
   def self.profile
     env = ENV['profile'] || ENV['p']
     env ? env.to_sym : nil
+  end
+
+  #
+  def self.command
+    #ENV['command'] || File.basename($0)
+    File.basename($0)
   end
 
   #
@@ -108,6 +115,11 @@ module DotRuby
   def self.boot!
     return unless dotruby_file
 
+    begin
+      require_relative "tweaks/#{DotRuby.command}"
+    rescue LoadError
+    end
+
     $dotruby = DSL.new(dotruby_file)
 
     # If the constant already exists, apply the configuration.
@@ -124,7 +136,7 @@ module DotRuby
       def require(fname)
         _require(fname)
 
-        if consts = $dotruby.commands[[File.basename($0), fname]]
+        if consts = $dotruby.commands[[DotRuby.command, fname]]
           consts.each do |c|
             if profile = $dotruby.constants[DotRuby.profile]
               profile[c].__run__
