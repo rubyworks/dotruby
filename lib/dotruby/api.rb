@@ -1,3 +1,5 @@
+require 'pp'
+
 # DotRuby - Universal Runtime Configuration for Ruby Tools
 #
 # Q. What if a program needs to be configured, but it does not provide
@@ -19,40 +21,36 @@
 module DotRuby
 
   #
-  def self.profile
-    env = ENV['profile'] || ENV['p']
-    env ? env.to_sym : nil
-  end
-
-  #
-  def self.command
-    #ENV['command'] || File.basename($0)
-    File.basename($0)
-  end
-
-  #
   class DSL < BasicObject #Module
     include ::Kernel
 
+    attr :file
+
+    # Table of command/feature to constant relationships.
+    #
+    # @return [Hash]
     def commands
-      @@commands
+      @@cmds
     end
 
+    # Table of constant configurations.
+    #
+    # @return [Hash]
     def constants
-      @@constants
+      @@cons
     end
 
+    # Initialize new DSL instance.
+    #
     def initialize(file)
       @file = file
 
-      @@commands  = {}
-      @@constants = {}
-      @@profile   = nil
+      @@cmds ||= {}
+      @@cons ||= {}
 
       instance_eval(::File.read(file), file)
     end
 
-    #
     # Tag a constant to a command and/or feature.
     #
     def tag(constant, *target)
@@ -62,57 +60,72 @@ module DotRuby
       command = options[:command] || target
       feature = options[:feature] || target
 
-      (@@commands[[command, feature]] ||= []) << constant
+      (@@cmds[[command, feature]] ||= []) << constant
     end
 
-    #
-    # TODO: Support nested profiles?
-    #
-    def profile(name=nil, &block)
-      return @@profile unless name or block
-
-      @@profile = name.to_sym
-      begin
-        block.call
-      ensure
-        @@profile = nil
-      end
-    end
-
-    #
     # Constants provide configuration.
     #
     def self.const_missing(name)
-      @@constants[@@profile] ||= {}
-      @@constants[@@profile][name] ||= Configuration.new(name)
+      @@cons[name] ||= Constant.new(name)
     end
 
   end
 
+  # The virtual constant class is a simple recorder. Every method
+  # called on it is recorded for later recall on the actual constant
+  # given by name.
   #
+  # To invoke the recordeed calls on the real constant use `to_proc.call`.
   #
-  class Configuration
+  class Constant < BasicObject
+
+    # Initialize configuration.
+    #
+    # @param [Symbol] Name of constant.
+    #
     def initialize(name)
       @name  = name
       @calls = []
     end
 
-    def __run__
-      c = Object.const_get(@name)
-      @calls.each do |s, a, b|
-        c.public_send(s, *a, &b)
-      end
+    # An inspection string for the Configuration class.
+    #
+    # @return [String]
+    def inspect
+      "#<Constant #{@name}>"
     end
 
+    #
     def method_missing(s, *a, &b)
       @calls << [s, a, b]
     end
+
+    # TODO: Add support for const_missing? But these need
+    #       to be recalled in order with method_missing.
+
+    #def const_missing(name)
+    #  @calls << Configuration.new("#{@name}::#{name}")
+    #end
+
+    # Create a Proc instance that will recall the method
+    # invocations on the actual constant.
+    #
+    # @return [Proc]
+    def to_proc
+      name, calls = @name, @calls
+      ::Proc.new do
+        const = ::Object.const_get(name)
+        calls.each do |s, a, b|
+          const.public_send(s, *a, &b)
+        end
+      end
+    end
   end
 
-  # Boot the system.
+  # Configure the system.
   #
   # @return nothing
-  def self.boot!
+  def self.configure!
     return unless dotruby_file
 
     begin
@@ -123,9 +136,9 @@ module DotRuby
     $dotruby = DSL.new(dotruby_file)
 
     # If the constant already exists, apply the configuration.
-    $dotruby.constants[DotRuby.profile].each do |const, config|
-      if Object.const_defined?(const)
-        config.__run__
+    $dotruby.constants.each do |name, config|
+      if Object.const_defined?(name)
+        execute(&config)
       end
     end
 
@@ -137,14 +150,30 @@ module DotRuby
         _require(fname)
 
         if consts = $dotruby.commands[[DotRuby.command, fname]]
-          consts.each do |c|
-            if profile = $dotruby.constants[DotRuby.profile]
-              profile[c].__run__
+          consts.each do |name|
+            if config = $dotruby.constants[name]
+              DotRuby.execute(&config)
             end
           end
         end
       end
+
+      module_function :require
     }
+  end
+
+  # Current command.
+  #
+  # @return [String]
+  def self.command
+    ENV['command'] || File.basename($0)
+  end
+
+  # Execute the configuration.
+  #
+  # @return nothing
+  def self.execute(&config)
+    config.call
   end
 
   # Returns the `.ruby` file of the current project.
