@@ -1,5 +1,6 @@
 module DotRuby
 
+  # DotRuby DSL class is used to evaluate the `.ruby` configuration file.
   #
   class DSL < BasicObject #Module
     include ::Kernel
@@ -9,8 +10,10 @@ module DotRuby
     def initialize(file)
       @file = file
 
-      @@cmds ||= {}
-      @@cons ||= {}
+      @@default_tags ||= {}
+      @@defined_tags ||= {}
+
+      @@contants ||= {}
 
       instance_eval(::File.read(file), file)
     end
@@ -20,18 +23,29 @@ module DotRuby
     # @return [String]
     attr :file
 
-    # Table of command/feature to constant relationships.
+    # Return recognizes tags.
     #
     # @return [Hash]
-    def commands
-      @@cmds
+    def tags
+      keys = @@default_tags.keys - @@defined_tags.keys
+      tags = @@defined_tags.dup
+      keys.each do |key|
+        tags[key] = [@@default_tags[key]]
+      end
+      tags
     end
+
+    # Defined tags map constant names to a list of `[command, feature]` pairs.
+    #
+    # @return [Hash<Array>]
+    #def defined_tag
+    #end
 
     # Table of constant configurations.
     #
     # @return [Hash]
     def constants
-      @@cons
+      @@contants
     end
 
     # Tag a constant to a command and/or feature.
@@ -43,7 +57,19 @@ module DotRuby
       command = options[:command] || target
       feature = options[:feature] || target
 
-      (@@cmds[[command, feature]] ||= []) << constant
+      tag = [command.to_s, feature.to_s]
+
+      @@defined_tags[constant] ||= []
+      @@defined_tags[constant] << tag unless @@defined_tags[constant].include?(tag)
+      @@defined_tags
+    end
+
+    # Set the default tag for a constant.
+    # Unlike defined tags, there can be only one associate for a default tag.
+    #
+    # @return [Hash<Array>]
+    def default_tag(cname, command, feature=nil)
+      @@default_tags[cname.to_sym] = [command.to_s, (feature || command).to_s]
     end
 
     # Only configure if profile matches.
@@ -85,11 +111,13 @@ module DotRuby
 
     # Constants provide configuration.
     #
-    # @param [Symbol,String] name
+    # @param [Symbol,String] cname
     #
     # @return [Constant]
-    def self.const_missing(name)
-      @@cons[name] ||= Constant.new(name)
+    def self.const_missing(cname)
+      @@default_tags[cname.to_sym] = [cname.to_s.downcase, cname.to_s.downcase]
+
+      @@contants[cname] ||= Constant.new(cname)
     end
 
   end

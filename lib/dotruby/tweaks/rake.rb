@@ -2,6 +2,10 @@ require 'rake'
 
 module Rake
 
+  # TODO: While probably a complete YAGNI, how might we load a .ruby rake config into a Rakefile?
+
+  # TODO: rake -T doesn't work, why?
+
   # Use this method to add tasks to Rake.
   def self.file(&config)
     Module.new do

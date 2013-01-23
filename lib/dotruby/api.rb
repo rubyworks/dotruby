@@ -2,23 +2,42 @@ module DotRuby
   require 'dotruby/dsl'
   require 'dotruby/constant'
 
+  #
+  def self.configuration
+    @configuration ||= DSL.new(dotruby_file)
+  end
+
+  # This is a convenience interfact to the configuration domain, which
+  # is useful for tweaks to redefine the default tag.
+  def self.default_tag(cname, command, feature=nil)
+    configuration.default_tag(cname, command, feature)
+  end
+
   # Configure the system.
   #
   # @return nothing
   def self.configure!
     return unless dotruby_file
 
+    dotruby = DotRuby.configuration
+
     begin
       require_relative "tweaks/#{DotRuby.command}"
     rescue LoadError
     end
 
-    $dotruby = DSL.new(dotruby_file)
-
     # If the constant already exists, apply the configuration.
-    $dotruby.constants.each do |name, config|
-      if Object.const_defined?(name)
-        execute(&config)
+    #
+    # Since Ruby provides no way to ask if a feature has been required or not,
+    # we can only condition application of pre-extisting constants on a
+    # matching command.
+    dotruby.tags.each do |cname, tags|
+      tags.each do |tag|
+        next unless Object.const_defined?(cname)
+        next unless DotRuby.command == tag.first  # command of the tag
+        if config = dotruby.constants[name]
+          execute(&config)
+        end
       end
     end
 
@@ -29,9 +48,13 @@ module DotRuby
       def require(fname)
         _require(fname)
 
-        if consts = $dotruby.commands[[DotRuby.command, fname]]
-          consts.each do |name|
-            if config = $dotruby.constants[name]
+        dotruby = DotRuby.configuration
+        command = DotRuby.command
+        dotruby.tags.each do |cname, tags|
+          tags.each do  |tag|
+            next unless fname == tag.last     # feature of the tag
+            next unless command == tag.first  # command of the tag
+            if config = dotruby.constants[cname]
               DotRuby.execute(&config)
             end
           end

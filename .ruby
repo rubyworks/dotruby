@@ -1,8 +1,7 @@
-tag :RSpec, 'rspec'
-tag :Test, 'rubytest'
+puts "DotRuby in Action!"
 
-RSpec.configure do
-  p "HELLO!"
+RSpec.configure do |c|
+  p "Hello from RSpec Config!"
 end
 
 Test.run do
@@ -14,8 +13,11 @@ Test.run('coverage') do
 end
 
 Rake.file do
-  task :default do
-    puts "Default Rake Task!"
+  task :default => [:test]
+
+  desc "Run unit tests"
+  task :test do
+    sh 'rubytest'
   end
 end
 
