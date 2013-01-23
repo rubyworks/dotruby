@@ -2,10 +2,10 @@
 
 **Univeral Runtime Configuration for Ruby Tools**
 
-[Homepage](http://rubyworks.github.com/rc) /
-[Report Issue](http://github.com/rubyworks/rc/issues) /
-[Source Code](http://github.com/rubyworks/rc)
-( [![Build Status](https://secure.travis-ci.org/rubyworks/rc.png)](http://travis-ci.org/rubyworks/rc) )
+[Homepage](http://rubyworks.github.com/dotruby) /
+[Report Issue](http://github.com/rubyworks/dotruby/issues) /
+[Source Code](http://github.com/rubyworks/dotruby)
+( [![Build Status](https://secure.travis-ci.org/rubyworks/dotruby.png)](http://travis-ci.org/rubyworks/dotruby) )
 
 
 ## About
@@ -17,18 +17,15 @@ built-in support for DotRuby or not. The syntax is simple, universally
 applicable, and... oh yeah, damn clever.
 
 DotRuby can be used with any Ruby-based commandline tool or library utilized by
-such tool, where there exists some means of configuring it via a toplevel/global
+such tool, where there exists some means of configuring it via a toplevel or global
 interface; or the tool has been designed to directly support DotRuby, of course.
 
 
 ## Installation
 
-To use DotRuby with tools that support DotRuby directly, there is likely nothing to
-install. Installing the tool should install `dotruby` via a dependency and
-load runtime configurations when the tool is used.
-
-To use DotRuby with a tool that does not provide built-in support, first install
-the DotRuby library, typically via RubyGems:
+To use DotRuby with any tool, including those that do not in themsleves have a
+built-in dependency on DotRuby, first install the DotRuby library, typically
+via RubyGems:
 
     gem install dotruby
 
@@ -39,20 +36,39 @@ Then add `-rdotruby` to your system's `RUBYOPT` environment variable.
 You will want to add that to your `.bashrc`, `.profile` or equivalent configuration
 script, so it is always available.
 
+To use DotRuby with tools that support DotRuby directly, there is likely nothing
+to install. Installing the tool should install `dotruby` via a dependency and
+load runtime configurations when the tool is used.
+
 
 ## Instruction
 
-To use DotRuby in a project create a configuration file called either `.ruby` or `.rubyrc`. 
-The longer name has precedence if both are present. In this file add configuration blocks
-by name of the commandline tool.
+### Configuring
 
-For example, let's demonstrate how we could use this to configure Rake tasks.
-(Yes, Rake is not the most obvious choice, since developers are just as happy
-to keep using a Rakefile. But using Rake as an example serves to show that it
-*can* be done, and also it makes a good tie-in with next example.)
+To use DotRuby in a project create a configuration file called `.ruby`.
+(Hey, now you know why it has the name, *DotRuby*!). In this file add 
+configuration code as you would normally do for a given library. The
+only caveat is that all such configurations must be against a constant.
 
-    $ cat .ruby
-    Rake.instance_eval do
+For example, let's say we need to configure RSpec. In the `.ruby` file we can
+add the following.
+
+    RSpec.configure do |config|
+      config.color_enabled = true
+      config.tty = true
+      config.formatter = :documentation
+    end
+
+This might seems pretty ordinary, but consider that the RSpec library hasn't
+necessarily been loaded when this is evaluated! Think about that a bit
+and we'll explain how it works below.
+
+For another example, let's demonstrate how we could use this to configure Rake
+tasks. Rake is not the most obvious choice, since developers are just as happy
+to keep using a Rakefile. That's fine. But using Rake as an example serves to
+show that it *can* be done, and also it makes a good tie-in with next example.
+
+    Rake.file do
       desc 'generate yard docs'
       task :yard do
         sh 'yard'
@@ -61,21 +77,21 @@ to keep using a Rakefile. But using Rake as an example serves to show that it
 
 Now when `rake` is run the tasks defined in this configuration will be available.
 
-You might wonder why anyone would do this. That's where the *multi-tenancy*
-comes into play. Let's add another configuration.
+Getting back to our Rake example, you might wonder why anyone would want to do 
+this. That's where the *multi-tenancy* comes into play. Let's add another
+configuration.
 
-    $ cat .rubyrc
     title = "MyApp"
 
-    Rake.instance_eval :rake do
+    Rake.file do
       desc 'generate yard docs'
       task :yard do
         sh "yard doc --title #{title}"
       end
     end
 
-    config :qedoc do |doc|
-      doc.title = "#{title} Demos"
+    QED.config do |c|
+       c.title = "#{title} Demos"
     end
 
 Now we have configuration for both the `rake` tool and the `qedoc` tool in
@@ -84,74 +100,118 @@ project while pulling our tool configurations together into one place.
 Moreover, these configurations can potentially share settings as demonstrated
 here via the `title` local variable.
 
-Of course, if we want configurations stored in multiple files, that can be done
-too. Simple use the `import` method to load them, e.g.
+### Tagging
 
-    import 'rc/*.rb'
+Some commands don't correspond to their API namespaces. For example, in the 
+above example we configured QED's title option. But that is actually of
+use when running the `qedoc` command, which belongs to the same library.
+We can easily tell DotRuby to expect this by adding a `tag`.
 
-DotRuby also supports profiles, either via a `profile` block:
+    tag :QED, :command=>'qedoc'
 
-    profile :cov do
-      config :qed do
-        require 'simplecov'
-        ...
+DotRuby's configurations are triggered by three criteria: a constant,
+a command and a feature. In the above tag example, the constant is
+`QED`, the command is `qedoc` and the feature is not given so it defaults
+to the constant name downcased, i.e. `qed`. If need be we can sepcify a
+different feature via the `:feature` option.
+
+### Profiles
+
+Sometimes you need to configure a tool with different settings for different
+circumstances. If the tool doesn't have built in support for this, DotRuby
+provides some convenience methods for handling this via environment variables.
+
+A `profile` block can be used to only run if `ENV['profile']', or as a nice
+shortcut `ENV['p']` is set to the given name.
+
+    profile :doc do
+      RSpec.configure do |config|
+        config.color_enabled = true
+        config.tty = true
+        config.formatter = :documentation
       end
     end
 
-Or via a keyword parameter:
+To be clear why this is just a convenience method, it is essentially the same
+as doing:
 
-    config 'qed', profile: 'cov' do
-      require 'simplecov'
+    if 'doc' === (ENV['profile'] || ENV['p'])
       ...
     end
 
-When utilizing the tool, set the profile via an environment variable.
+When utilizing the tool, set the `profile` via an environment variable.
 
     $ profile=cov qed
 
-DotRuby also support just `p` as a convenient shortcut.
+Or for additional convenience just `p`:
 
     $ p=cov qed
 
-Some tools that support DotRuby out-of-the-box, may support a profile command
-line option for specifying the profile.
+### Environments
 
-    $ qed -p cov
+DotRuby also provided the `environment` convenience method, which is along
+the same line but allows any environment variable to be used.
 
-Beyond mere namespacing, some tools might utilize profiles for a more specific
-purpose fitting the tool. Consult the tool's documentation for details.
-
-Configurations can also be pulled in from other gems using the `from` option.
-
-    config :qed, :profile=>'simplecov', :from=>'qed'
-
-As long as a project includes its `.rubyrc` file (and any imported files)
-in it's gem package, it's possible to share configurations in this manner.
-
-
-## Customization
-
-A tool can provide dedicated support for DotRuby by loading `rc/api` and using the
-`configure` method to define a configuration procedure. For example, 
-the `detroit` project defines:
-
-    require 'rc/api'
-
-    DotRuby.configure 'detroit' do |config|
-      if config.command?
-        Detroit.rc_config << config
-      end
+    environment :testing => 'yes' do
+      ...
     end
 
-In our example, when `detroit` is required this configuration will be processed.
-The `if config.command?` condition ensures that it only happens if the config's
-`command` property matches the current command, i.e. `$0 == 'detroit'`. We see
-here that Detroit stores the configuration for later use. When Detroit gets
-around to doing it's thing, it checks this `rc_config` setting and evaluates
-the configurations found there.
+Again, this is just a shortcut for:
 
-It is important that DotRuby be required first, ideally before anything else. This
-ensures it will pick up all configured features.
+    if 'yes' === ENV['testing']
+       ...
+    end
+
+It is recommended that you use the `profile` instead of `environment` unless their
+is specific reason not to do so. This makes it easier for other to utilize, instead
+of having to recollect which environment variables where used for what configurations.
+
+### Tweaks
+
+In the Rake example, you might notice that `Rake.file` isn't an official method
+of the Rake API. This is called a *tweak* and is built-in with DotRuby. Some
+tools that we might wish to use with DotRuby don't have an interface that
+suffices, in these cases a tweak can be used to give it one.
+
+If there is a tool you would like to configure with DotRuby, but it doesn't
+provided a means for it, and a reasonably simple tweak can make it viable, 
+please submit a patch and it will be added to DotRuby. And let the tool creator
+knwo about it! Hopefully, in time tool developers will make the tweak unneccesary.
+
+### Importing
+
+**(Comming soon)**
+
+Configurations can also be pulled in from other gems using the `import` command.
+For instance, if we wanted to reuse the Rake configurations as defined in
+the `QED` gem:
+
+    import :Rake, :from=>'qed'
+
+If a particule profile or environment is needed, these can specified as options.
+
+    import :RSpec, :from=>'rspec', :profile=>'simplecov'
+
+As long as a project includes its `.ruby` file (and any local imported files)
+in it's gem package, it's possible to share configurations in this manner.
+
+Generally we want all our configurations stored in a single file, but if need be
+the `import` method can be used to place configuration in multiple files.
+Simple use a local path `import` method to load them, e.g.
+
+    import './config/*.dotrb'
+
+DotRuby translates the initial dot into a path relative to the file itself,
+i.e. `__dir__`. Why can't we leave off the initial dot? If we did import
+would work like require and try to load the file from a gem --however,
+there is an issue with implementing this that needs to be resolved with 
+Ruby itself (autoload), so this feature is on hold for the time being.
+
+### Developers
+
+TO support dotruby, all Developers need to do is make sure their programs
+have a way of being configured via a toplevel constant.
+
 
 Some tools will want to support a command line option for selecting a 
 configuration profile. DotRuby has a convenience method to make this very
