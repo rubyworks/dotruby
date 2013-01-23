@@ -13,12 +13,9 @@ Test.run('coverage') do
   p "HELLO AGAIN!"
 end
 
-
-profile :dev do
-
-  Test.run do
-    p "DEVELOPMENT SAYS HELLO TOO!"
+Rake.file do
+  task :default do
+    puts "Default Rake Task!"
   end
-
 end
 
