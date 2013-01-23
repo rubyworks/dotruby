@@ -3,7 +3,7 @@ require 'rake'
 module Rake
 
   # Use this method to add tasks to Rake.
-  def self.configure(&config)
+  def self.file(&config)
     Module.new do
       extend Rake::DSL
       module_eval(&config)
@@ -11,9 +11,9 @@ module Rake
   end
 
   class Application
-    #remove_const(:DEFAULT_RAKEFILES)
-    #DEFAULT_RAKEFILES = ['rakefile', 'Rakefile', 'rakefile.rb', 'Rakefile.rb', '.ruby']
-    DEFAULT_RAKEFILES << '.ruby'
+    remove_const(:DEFAULT_RAKEFILES)
+    DEFAULT_RAKEFILES = ['rakefile', 'Rakefile', 'rakefile.rb', 'Rakefile.rb', '.ruby']
+    #DEFAULT_RAKEFILES << '.ruby'
   end
 
   def self.load_rakefile(path)
@@ -24,5 +24,6 @@ module Rake
       load(path)
     end
   end
+
 end
 
