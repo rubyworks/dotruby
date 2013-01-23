@@ -1,6 +1,6 @@
 # DotRuby (formerly known as Ruby Courtier)
 
-**Univeral Runtime Configuration for Ruby Tools**
+**Universal Runtime Configuration for Ruby Tools**
 
 [Homepage](http://rubyworks.github.com/dotruby) /
 [Report Issue](http://github.com/rubyworks/dotruby/issues) /
@@ -23,7 +23,7 @@ interface; or the tool has been designed to directly support DotRuby, of course.
 
 ## Installation
 
-To use DotRuby with any tool, including those that do not in themsleves have a
+To use DotRuby with any tool, including those that do not in themselves have a
 built-in dependency on DotRuby, first install the DotRuby library, typically
 via RubyGems:
 
@@ -94,7 +94,7 @@ configuration.
        c.title = "#{title} Demos"
     end
 
-Now we have configuration for both the `rake` tool and the `qedoc` tool in
+Now we have configuration for both the `rake` tool and the `qed` tool in
 a single file. Thus we gain the advantage of reducing the file count of our 
 project while pulling our tool configurations together into one place.
 Moreover, these configurations can potentially share settings as demonstrated
@@ -112,7 +112,7 @@ We can easily tell DotRuby to expect this by adding a `tag`.
 DotRuby's configurations are triggered by three criteria: a constant,
 a command and a feature. In the above tag example, the constant is
 `QED`, the command is `qedoc` and the feature is not given so it defaults
-to the constant name downcased, i.e. `qed`. If need be we can sepcify a
+to the constant name downcased, i.e. `qed`. If need be we can specify a
 different feature via the `:feature` option.
 
 ### Profiles
@@ -176,7 +176,7 @@ suffices, in these cases a tweak can be used to give it one.
 If there is a tool you would like to configure with DotRuby, but it doesn't
 provided a means for it, and a reasonably simple tweak can make it viable, 
 please submit a patch and it will be added to DotRuby. And let the tool creator
-knwo about it! Hopefully, in time tool developers will make the tweak unneccesary.
+know about it! Hopefully, in time tool developers will make the tweak unnecessary.
 
 ### Importing
 
@@ -188,7 +188,7 @@ the `QED` gem:
 
     import :Rake, :from=>'qed'
 
-If a particule profile or environment is needed, these can specified as options.
+If a particular profile or environment is needed, these can specified as options.
 
     import :RSpec, :from=>'rspec', :profile=>'simplecov'
 
@@ -207,10 +207,41 @@ would work like require and try to load the file from a gem --however,
 there is an issue with implementing this that needs to be resolved with 
 Ruby itself (autoload), so this feature is on hold for the time being.
 
-### 3rd Paty Support
+### Third Party Support
 
-To support DotRuby, all developers need to do is make sure their tools
-have a way of being configured via a toplevel constant.
+To support DotRuby, all developers have to do is make sure their tools
+have a way of being configured via a toplevel namespace constant.
+
+It is also helps when the the library name to be required is the the same
+as the library's namespace downcased. When it's not the same a `tag` entry
+is needed to tell DotRuby from which feature to expect the constant. For
+popular tools that have such a discrepancy, DotRuby provides *tweaks* that
+take care of it automatically. But it's always best to follow the general
+good practice that the gem name is the same as the lib name which is the same
+as the namespace downcased.
+
+Finally a third party tool can take the final step of full support by using 
+DotRuby as it preferred means of configuration. In that case, just make 
+sure to `require 'dotruby'`.
+
+
+## How It Works
+
+The design of DotRuby is actually quite clever. What it does is proxy all
+calls to *virtual constants*, keeping a record of the messages sent to them.
+When it is time to apply these configurations, it fins the ones that apply
+to the given command and sends the recorded messages on the the real constants.
+If those constants haven't been loaded yet, it adds a hook to `require` and 
+waits for the matching feature to load, at which time it applies the configuration.
+In the way, DotRuby can actually be required before or after the library that
+it will configure and it works regardless.
+
+There is an unfortunate caveat here though. Luckily it will rarely be a real issue,
+but it is possible for `autoload` to fowl up the works, b/c it does not call out
+the standard require method. So there is no way override it and insert the necessary
+hook. Again, this is not likely to be a problem, especially if good naming practices
+are used, but it a good thing to know just in case you run into some unexpected
+behavior.
 
 
 ## Dependencies
