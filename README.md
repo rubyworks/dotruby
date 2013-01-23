@@ -207,21 +207,10 @@ would work like require and try to load the file from a gem --however,
 there is an issue with implementing this that needs to be resolved with 
 Ruby itself (autoload), so this feature is on hold for the time being.
 
-### Developers
+### 3rd Paty Support
 
-TO support dotruby, all Developers need to do is make sure their programs
+To support DotRuby, all developers need to do is make sure their tools
 have a way of being configured via a toplevel constant.
-
-
-Some tools will want to support a command line option for selecting a 
-configuration profile. DotRuby has a convenience method to make this very
-easy to do. For example, `qed` uses it:
-
-    DotRuby.profile_switch('qed', '-p', '--profile')
-
-It does not remove the argument from `ARGV`, so the tool's command line option
-parser should still account for it. This simply ensures DotRuby will know what the
-profile is by setting `ENV['profile']` to the entry following the switch.
 
 
 ## Dependencies
@@ -252,11 +241,12 @@ Please head over to Ruby Issue Tracker and add your support.
 Please see HISTORY.md file.
 
 
-## Copyrights
+## Copyrights & Licensing
 
-Copyright (c) 2011 Rubyworks
+DotRuby is copyrighted open-source software.
 
-Confection is distributable in accordance with the **BSD-2-Clause** license.
+    Copyright (c) 2011 Rubyworks. All rights reserved.
+
+It is modifiable and redistributable in accordance with the **BSD-2-Clause** license.
 
 See LICENSE.txt file for details.
-
