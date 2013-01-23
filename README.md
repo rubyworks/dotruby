@@ -229,18 +229,18 @@ sure to `require 'dotruby'`.
 
 The design of DotRuby is actually quite clever. What it does is proxy all
 calls to *virtual constants*, keeping a record of the messages sent to them.
-When it is time to apply these configurations, it fins the ones that apply
-to the given command and sends the recorded messages on the the real constants.
+When it is time to apply these configurations, it finds the ones that apply
+to the given command and sends the recorded messages on the real constants.
 If those constants haven't been loaded yet, it adds a hook to `require` and 
 waits for the matching feature to load, at which time it applies the configuration.
-In the way, DotRuby can actually be required before or after the library that
+In this way, DotRuby can actually be required before or after the library that
 it will configure and it works regardless.
 
-There is an unfortunate caveat here though. Luckily it will rarely be a real issue,
+There is a minor caveat here though. Luckily it will rarely be a real issue,
 but it is possible for `autoload` to fowl up the works, b/c it does not call out
 the standard require method. So there is no way override it and insert the necessary
 hook. Again, this is not likely to be a problem, especially if good naming practices
-are used, but it a good thing to know just in case you run into some unexpected
+are used, but it's a good thing to know just in case you run into some unexpected
 behavior.
 
 
