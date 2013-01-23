@@ -1,4 +1,4 @@
-# DotRuby (formerly known as Ruby Courtier)
+# DotRuby
 
 **Universal Runtime Configuration for Ruby Tools**
 
@@ -8,7 +8,7 @@
 ( [![Build Status](https://secure.travis-ci.org/rubyworks/dotruby.png)](http://travis-ci.org/rubyworks/dotruby) )
 
 
-## About
+## [About](#about)
 
 DotRuby is a is multi-tenant runtime configuration system for Ruby tools.
 It is designed to facilitate Ruby-based configuration for multiple
@@ -21,7 +21,7 @@ such tool, where there exists some means of configuring it via a toplevel or glo
 interface; or the tool has been designed to directly support DotRuby, of course.
 
 
-## Installation
+## [Installation](#installation)
 
 To use DotRuby with any tool, including those that do not in themselves have a
 built-in dependency on DotRuby, first install the DotRuby library, typically
@@ -41,7 +41,7 @@ to install. Installing the tool should install `dotruby` via a dependency and
 load runtime configurations when the tool is used.
 
 
-## Instruction
+## [Instruction](#instruction)
 
 ### Configuring
 
@@ -225,7 +225,7 @@ DotRuby as it preferred means of configuration. In that case, just make
 sure to `require 'dotruby'`.
 
 
-## How It Works
+## [How It Works](#howitworks)
 
 The design of DotRuby is actually quite clever. What it does is proxy all
 calls to *virtual constants*, keeping a record of the messages sent to them.
@@ -244,7 +244,7 @@ are used, but it a good thing to know just in case you run into some unexpected
 behavior.
 
 
-## Dependencies
+## [Dependencies](#dependencies)
 
 ### Libraries
 
@@ -267,12 +267,12 @@ Please head over to Ruby Issue Tracker and add your support.
 * http://bugs.ruby-lang.org/issues/6056
 
 
-## Release Notes
+## [Release Notes](#releasenotes)
 
 Please see HISTORY.md file.
 
 
-## Copyrights & Licensing
+## [Copyrights & Licensing](#copyrights)
 
 DotRuby is copyrighted open-source software.
 
