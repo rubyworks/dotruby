@@ -121,7 +121,7 @@ Sometimes you need to configure a tool with different settings for different
 circumstances. If the tool doesn't have built in support for this, DotRuby
 provides some convenience methods for handling this via environment variables.
 
-A `profile` block can be used to only run if `ENV['profile']', or as a nice
+A `profile` block can be used to only run if `ENV['profile']`, or as a nice
 shortcut `ENV['p']` is set to the given name.
 
     profile :doc do
@@ -141,16 +141,16 @@ as doing:
 
 When utilizing the tool, set the `profile` via an environment variable.
 
-    $ profile=cov qed
+    $ profile=cov rspec
 
 Or for additional convenience just `p`:
 
-    $ p=cov qed
+    $ p=cov rspec
 
 ### Environments
 
 DotRuby also provided the `environment` convenience method, which is along
-the same line but allows any environment variable to be used.
+the same lines a profile, but allows any environment variable to be used.
 
     environment :testing => 'yes' do
       ...
@@ -163,7 +163,7 @@ Again, this is just a shortcut for:
     end
 
 It is recommended that you use the `profile` instead of `environment` unless their
-is specific reason not to do so. This makes it easier for other to utilize, instead
+is specific reason not to do so. This makes it easier for others to utilize, instead
 of having to recollect which environment variables where used for what configurations.
 
 ### Tweaks
@@ -230,7 +230,7 @@ sure to `require 'dotruby'`.
 The design of DotRuby is actually quite clever. What it does is proxy all
 calls to *virtual constants*, keeping a record of the messages sent to them.
 When it is time to apply these configurations, it finds the ones that apply
-to the given command and sends the recorded messages on the real constants.
+to the given command and sends the recorded messages on to the real constants.
 If those constants haven't been loaded yet, it adds a hook to `require` and 
 waits for the matching feature to load, at which time it applies the configuration.
 In this way, DotRuby can actually be required before or after the library that
