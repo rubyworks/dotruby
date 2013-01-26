@@ -1,11 +1,13 @@
 module DotRuby
+  require 'dotruby/module'
   require 'dotruby/profile'
   require 'dotruby/constant'
   require 'dotruby/dsl'
 
   #
+  #
   def self.configuration
-    @configuration ||= DSL.new(dotruby_file)
+    @configuration ||= DSL.load
   end
 
   #
@@ -18,32 +20,25 @@ module DotRuby
     configuration.connect(*args)
   end
 
-  # This is a convenience interfact to the configuration domain, which
-  # is useful for tweaks to redefine the default tag.
-  #def self.default_tag(cname, command, feature=nil)
-  #  configuration.default_tag(cname, command, feature)
-  #end
-
   # Configure the system.
   #
   # @return nothing
-  def self.configure!
-    return unless dotruby_file
+  def self.configure!(conf=nil)
+    return unless DotRuby.file unless conf
+
+    @configuration = conf if conf
 
     require_relative 'connects'
 
-    dotruby  = DotRuby.configuration
-    profiles = dotruby.profiles
+    configuration = DotRuby.configuration
+    profiles      = configuration.profiles
 
     begin
       require_relative "tweaks/#{DotRuby.exec}"
     rescue LoadError
     end
 
-    state = {
-      :exec => exec,
-      :argv => argv,
-    }
+    state = {:exec => self.exec, :argv => self.argv}
 
     profiles.each do |profile|
       next unless profile.applicable?
@@ -62,14 +57,13 @@ module DotRuby
       def require(fname)
         _require(fname)
 
-        state = {:exec=>exec, :argv=>argv, :feature=>fname}
+        state = {:exec=>DotRuby.exec, :argv=>DotRuby.argv, :feature=>fname}
 
         DotRuby.profiles.each do |profile|
           next unless profile.applicable?
           profile.configurations.each do |configuration|
             if configuration.postmatch?(state)
-              configruation.execute
-              #DotRuby.execute(&config)
+              configuration.call
             end
           end
         end
@@ -96,14 +90,14 @@ module DotRuby
   # Execute the configuration.
   #
   # @return nothing
-  def self.execute(&config)
-    config.call
-  end
+  #def self.execute(&config)
+  #  config.call
+  #end
 
   # Returns the `.ruby` file of the current project.
   #
   # @return {String] The .ruby file of the project.
-  def self.dotruby_file
+  def self.file
     if project_root
       file = File.join(project_root, '.ruby')
       return nil unless File.exist?(file)

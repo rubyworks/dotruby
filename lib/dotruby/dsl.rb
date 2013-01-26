@@ -24,8 +24,28 @@ module DotRuby
     end
 
     #
-    def initialize(file)
-      @file = file
+    def self.load(io=nil)
+      case io
+      when nil
+        file = DotRuby.file
+        file ? new(:file=>file) : new
+      when ::File
+        new(:text=>io, :file=>io.path)
+      when ::String
+        new(:text=>io)
+      else
+        new(:text=>io.read)
+      end
+    end
+
+    #
+    def self.load_file(file)
+      new(:file=>file)
+    end
+
+    #
+    def initialize(options={})
+      @file = options[:file]
 
       # What a crazy awesome line of code!
       @profiles = [@@_profile = @default_profile = ::DotRuby::Profile.new(nil)]
@@ -33,7 +53,11 @@ module DotRuby
       @@command_connections  = {}
       @@constant_connections = {}
 
-      instance_eval(::File.read(file), file)
+      if text = options[:text]
+        @file ? instance_eval(text, @file) : instance_eval(text)
+      else
+        instance_eval(File.read(@file), @file) if @file
+      end
     end
 
     # List of profiles.

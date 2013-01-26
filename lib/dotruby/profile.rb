@@ -91,7 +91,7 @@ module DotRuby
 
       self << Configuration::Constant.new(constant)
 
-      return constant
+      @consts[const_name.to_sym] = constant
     end
 
     #

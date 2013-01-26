@@ -14,9 +14,11 @@ module DotRuby
 
       # Check if a feature matches against criteria.
       #
+      # @todo Need to be more versitile with extensions.
+      #
       # @return [Boolean]
       def matching_feature?(feature, state={})
-        feature == state[:feature]
+        feature == state[:feature].to_s.chomp('.rb')
       end
 
       # Check if a feature has been require already.
