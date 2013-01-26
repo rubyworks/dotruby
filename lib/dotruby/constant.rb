@@ -6,7 +6,7 @@ module DotRuby
   #
   # To invoke the recordeed calls on the real constant use `to_proc.call`.
   #
-  class Constant < BasicObject
+  class VirtualConstant < BasicObject
 
     # Initialize configuration.
     #
@@ -15,6 +15,11 @@ module DotRuby
     def initialize(name)
       @name  = name
       @calls = []
+    end
+
+    #
+    def name
+      @name
     end
 
     # An inspection string for the Configuration class.

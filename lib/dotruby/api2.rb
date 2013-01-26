@@ -3,15 +3,20 @@ module DotRuby
   require 'dotruby/constant'
 
   #
+  def self.profiles
+    @profiles ||= []
+  end
+
+  #
   def self.configuration
     @configuration ||= DSL.new(dotruby_file)
   end
 
   # This is a convenience interfact to the configuration domain, which
   # is useful for tweaks to redefine the default tag.
-  def self.default_tag(cname, command, feature=nil)
-    configuration.default_tag(cname, command, feature)
-  end
+  #def self.default_tag(cname, command, feature=nil)
+  #  configuration.default_tag(cname, command, feature)
+  #end
 
   # Configure the system.
   #
@@ -26,17 +31,17 @@ module DotRuby
     rescue LoadError
     end
 
-    # If the constant already exists, apply the configuration.
-    #
-    # Since Ruby provides no way to ask if a feature has been required or not,
-    # we can only condition application of pre-extisting constants on a
-    # matching command.
-    dotruby.tags.each do |cname, tags|
-      tags.each do |tag|
-        next unless Object.const_defined?(cname)
-        next unless DotRuby.command == tag.first  # command of the tag
-        if config = dotruby.constants[name]
-          execute(&config)
+    state = {
+      :exec => exec,
+      :argv => argv,
+    }
+
+    profiles.each do |profile|
+      next unless profile.applicable?
+      profile.configurations.each do |configuration|
+        # If connected feature is already required then apply the configuration.
+        if configuration.prematch?(state)
+          configruation.execute
         end
       end
     end
@@ -48,14 +53,14 @@ module DotRuby
       def require(fname)
         _require(fname)
 
-        dotruby = DotRuby.configuration
-        command = DotRuby.command
-        dotruby.tags.each do |cname, tags|
-          tags.each do  |tag|
-            next unless fname == tag.last     # feature of the tag
-            next unless command == tag.first  # command of the tag
-            if config = dotruby.constants[cname]  # FIXME: This can run a config more than once ?
-              DotRuby.execute(&config)
+        state = {:exec=>exec, :argv=>argv, :feature=>fname}
+
+        DotRuby.profiles.each do |profile|
+          next unless profile.applicable?
+          profile.configurations.each do |configuration|
+            if configuration.postmatch?(state)
+              configruation.execute
+              #DotRuby.execute(&config)
             end
           end
         end
@@ -65,11 +70,18 @@ module DotRuby
     }
   end
 
-  # Current command.
+  # Current command name.
   #
   # @return [String]
-  def self.command
-    ENV['command'] || File.basename($0)
+  def self.exec
+    ENV['exec'] || File.basename($0)
+  end
+
+  # Current command arguments.
+  #
+  # @return [String]
+  def self.argv
+    ARGV
   end
 
   # Execute the configuration.

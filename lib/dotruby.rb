@@ -18,7 +18,7 @@
 #
 # We call this *tweaking*.
 
-require 'dotruby/api'
+require 'dotruby/api2'
 
 DotRuby.configure!
 
