@@ -1,102 +1,96 @@
 module DotRuby
+  require_relative 'configs/base'
+  require_relative 'configs/feature'
+  require_relative 'configs/command'
+  require_relative 'configs/constant'
 
-  # DotRuby DSL class is used to evaluate the `.ruby` configuration file.
   #
-  class DSL < BasicObject #Module
+  #
+  class DSL < BasicObject
     include ::Kernel
 
-    # Initialize new DSL instance.
+    #
+    class NestingError < ::SyntaxError
+    end
+
+    #
+    def self.command_connections(command)
+      @@command_connections[command]
+    end
+
+    #
+    def self.constant_connections(constant)
+      @@constant_connections[constant]
+    end
+
     #
     def initialize(file)
       @file = file
 
-      @@default_tags ||= {}
-      @@defined_tags ||= {}
+      # What a crazy awesome line of code!
+      @profiles = [@@_profile = @default_profile = ::DotRuby::Profile.new(nil)]
 
-      @@contants ||= {}
+      @@command_connections  = {}
+      @@constant_connections = {}
 
       instance_eval(::File.read(file), file)
     end
 
-    # The path of the current project's `.ruby` file.
-    #
-    # @return [String]
-    attr :file
-
-    # Return recognizes tags.
-    #
-    # @return [Hash]
-    def tags
-      keys = @@default_tags.keys - @@defined_tags.keys
-      tags = @@defined_tags.dup
-      keys.each do |key|
-        tags[key] = [@@default_tags[key]]
-      end
-      tags
+    # List of profiles.
+    # 
+    # @return [Array]
+    def profiles
+      @profiles
     end
 
-    # Defined tags map constant names to a list of `[command, feature]` pairs.
+    # Connect a constant to the feature from which it derives.
     #
-    # @return [Hash<Array>]
-    #def defined_tag
-    #end
-
-    # Table of constant configurations.
+    #   connect :constant=>:RSpec, :feature=>'rspec/core'
     #
-    # @return [Hash]
-    def constants
-      @@contants
-    end
-
-    # Tag a constant to a command and/or feature.
+    # Connect a constant to a command that utilizes it for configuration.
     #
-    def tag(constant, *target)
+    #   connect :constant=>:RSpec, :command=>'rspec'
+    #
+    # Or connect both at the same time.
+    #
+    #   connect :constant=>:RSpec, :feature=>'rspec/core', :command=>'rspec'
+    #
+    # Repeated calls for the same constant will *add* additional commands and features.
+    #
+    # A command can also be connected to a feature, without any constant.
+    #
+    #   connect :command=>'rspec', :feature=>'rspec/core'
+    #
+    # Finally, the `:to` option can be used to assign whatever is not explicitly stated.
+    # For example,
+    #
+    #   connenct :constant=>:QED, :to=>'qed'
+    #
+    # is equivalent to
+    #
+    #   connenct :constant=>:QED, :command=>'qed', :feature=>'qed'
+    #
+    def connect(*target)
       options = (::Hash === target.last ? target.pop : {})
-      target  = target.first
 
-      command = options[:command] || target
-      feature = options[:feature] || target
+      constant = target.first || options[:constant]
 
-      tag = [command.to_s, feature.to_s]
+      command = options[:command] || options[:to]
+      feature = options[:feature] || options[:to]
 
-      @@defined_tags[constant] ||= []
-      @@defined_tags[constant] << tag unless @@defined_tags[constant].include?(tag)
-      @@defined_tags
-    end
-
-    # Set the default tag for a constant.
-    # Unlike defined tags, there can be only one associate for a default tag.
-    #
-    # @return [Hash<Array>]
-    def default_tag(cname, command, feature=nil)
-      @@default_tags[cname.to_sym] = [command.to_s, (feature || command).to_s]
-    end
-
-    # Only configure if profile matches.
-    #
-    # @param [#===] match
-    #   A String or Regexp or any other object that can 
-    #   check a match to a String via #===.
-    #
-    # @return nothing
-    def profile(match, &block)
-      if match === (ENV['profile'] || ENV['p'])
-        block.call
-      end
-    end
-
-    # Only configure if environment matches.
-    #
-    # @param [Hash<name,#===>] matches
-    #   A Hash of String or Regexp or any other object that can 
-    #   check a match to a String via #===.
-    #
-    # @todo Should it be logical-or or logical-and?
-    #
-    # @return nothing
-    def environment(matches={}, &block)
-      if matches.any?{ |e, m| m === ENV[e] }
-        block.call
+      if constant
+        connections = (@@constant_connections[constant] ||= [])
+        if feature && !command
+          old = connections.find{ |c| c[:feature] && !c[:command] }
+          connections.delete(old)
+          connections << {:feature => feature}
+        elsif command && !feature
+          connections << {:command=>command}
+        else
+          connections << {:feature=>feature, :command=>command}
+        end
+      else
+        @@command_connections[command] = feature
       end
     end
 
@@ -109,15 +103,48 @@ module DotRuby
       raise 'import is not implemented yet'
     end
 
-    # Constants provide configuration.
     #
-    # @param [Symbol,String] cname
     #
-    # @return [Constant]
-    def self.const_missing(cname)
-      @@default_tags[cname.to_sym] = [cname.to_s.downcase, cname.to_s.downcase]
+    def profile(name, env={}, &block)
+      raise NestingError if @@_profile
+      @@_profile = Profile.new(env)
+      @profiles << @@_profile
+      begin
+        block.call
+      ensure
+        @@_profile = @default_profile
+      end
+    end
 
-      @@contants[cname] ||= Constant.new(cname)
+    #
+    #
+    def environment(env={}, &block)
+      raise NestingError if @@profile
+      @@_profile = Profile.new(env)
+      @profiles << @@_profile
+      begin
+        block.call
+      ensure
+        @@_profile = @default_profile
+      end
+    end
+
+    #
+    #
+    def command(command, options={}, &block)
+      @@_profile.command(command, options, &block)
+    end
+
+    # @deprecate ?
+    #
+    def feature(name, options={}, &block)
+      @@_profile.feature(name, options, &block)
+    end
+
+    #
+    #
+    def self.const_missing(const_name)
+      @@_profile.constant(const_name)
     end
 
   end

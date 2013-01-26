@@ -38,7 +38,8 @@ module DotRuby
     #       to be recalled in order with method_missing.
 
     #def const_missing(name)
-    #  @calls << Configuration.new("#{@name}::#{name}")
+    #  #@calls << Configuration.new("#{@name}::#{name}")
+    #  @calls << VirtualConstant.new("#{@name}::#{name}")
     #end
 
     # Create a Proc instance that will recall the method

@@ -3,13 +3,6 @@ module DotRuby
   #
   class Profile
 
-    #
-    def self.new(*argv)
-      profile = super(*argv)
-      DotRuby.profiles << profile
-      profile
-    end
-
     # Setup new Profile instance.
     #
     # @param [String,Symbol] name
@@ -18,49 +11,84 @@ module DotRuby
     # @param [Hash] environment
     #   Environment settings.
     #
-    def initialize(*argv)
-      case argv.fist
-      when Hash
-        @name = nil
-        @environment = (Hash === argv.last ? argv.pop : {})
+    def initialize(name, env=nil)
+      if Hash === name
+        env, name = name, nil
       else
-        @name, @environment = *argv
+        env = {}
       end
 
-      @constants = {}
-      @configurations = []
+      @name, @env = name, {}
+
+      env.each do |k,v|
+        @env[k.to_s] = v.to_s
+      end
+
+      @consts  = {}
+      @configs = []
     end
 
     #
+    def applicable?(env=ENV)
+      if @name
+        return false unless (@name === (ENV['profile'] || ENV['p']))
+      end
+
+      @env.all? do |name, value|
+        env[name] == value
+      end
+    end
+
+    # Name of the profile, if not an environment profile.
+    #
+    # @return [String]
     def name
       @name
     end
 
     #
-    def envinroment
-      @environment
+    #
+    # @return [Hash]
+    def env
+      @env
     end
 
+    alias :environment :env
+
     #
+    #
+    # @return [Array]
+    def configs
+      @configs
+    end
+
+    alias :configurations :configs
+
+    # Add a configuration instance to the profile.
+    #
+    # @return [Array]
     def <<(configuration)
-      @configurations << configuration
+      @configs << configuration
     end
 
     #
-    def command(name, *argv, options={}, &block)
-      self << Configuration::Command.new(name, *argv, options, &block)
+    #
+    # @return [Configuration::Command]
+    def command(command, options={}, &block)
+      self << Configuration::Command.new(command, options, &block)
     end
 
     #
-    def feature(name, options={}, &block)
-      self << Configuration::Feature.new(name, options, &block)
+    # @return [Configuration::Feature]
+    def feature(feature, options={}, &block)
+      self << Configuration::Feature.new(feature, options, &block)
     end
 
+    # Get the virtual constant for the given constant name.
     #
-    # 
-    #
+    # @return [VirtualConstant]
     def constant(const_name)
-      return @constants[const_name.to_sym] if constant?(const_name)
+      return @consts[const_name.to_sym] if constant?(const_name)
 
       constant = VirtualConstant.new(const_name)
 
@@ -79,9 +107,8 @@ module DotRuby
     # @return [Boolean]
     #
     def constant?(name)
-      @constants.key?(name.to_sym)
+      @consts.key?(name.to_sym)
     end
-
 
   end
 

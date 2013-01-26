@@ -35,7 +35,7 @@ module DotRuby
       #
       # @return [Array]
       def connections
-        constant_connections(name)
+        constant_connections(name) || [{:command=>name.to_s.downcase, :feature=>name.to_s.downcase}]
       end
 
       # A constant configuraiton is prematched if the current command and subcommands match one
@@ -62,6 +62,12 @@ module DotRuby
           feature = connection[:feature] || command_feature(command) || command
           matching_command?(command, state) && matching_feature?(feature, state)
         end
+      end
+
+      # Run configuration procedure.
+      #
+      def call
+        @constant.to_proc.call
       end
 
     end

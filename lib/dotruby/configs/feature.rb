@@ -45,6 +45,14 @@ module DotRuby
         state[:argv] ||= DotRuby.argv
         matching_feature?(feature)
       end
+
+      # Run configuration procedure.
+      #
+      # TODO: instance_eval at toplevel ?
+      def call
+        @block.call
+      end
+
     end
 
   end

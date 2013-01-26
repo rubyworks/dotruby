@@ -9,7 +9,7 @@ module DotRuby
       # @return [Boolean]
       def matching_command?(command, state={})
         exe, *argv = *command.split(/\s+/)
-        exe == state[:exename] && argv == state[:argv][0,argv.size]
+        exe == state[:exec] && argv == state[:argv][0,argv.size]
       end
 
       # Check if a feature matches against criteria.

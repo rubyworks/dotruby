@@ -57,6 +57,13 @@ module DotRuby
         matching_command?(command, state) && matching_feature?(feature, state)
       end
 
+      # Run configuration procedure.
+      #
+      # TODO: instance_eval at toplevel ?
+      def call
+        @block.call
+      end
+
     end
 
   end
