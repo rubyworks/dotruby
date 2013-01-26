@@ -30,10 +30,7 @@ module DotRuby
 
     #
     def applicable?(env=ENV)
-      if @name
-        return false unless (@name === (ENV['profile'] || ENV['p']))
-      end
-
+      (@name === (ENV['profile'] || ENV['p'])) &&
       @env.all? do |name, value|
         env[name] == value
       end

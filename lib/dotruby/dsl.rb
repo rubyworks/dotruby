@@ -106,8 +106,8 @@ module DotRuby
     #
     #
     def profile(name, env={}, &block)
-      raise NestingError if @@_profile
-      @@_profile = Profile.new(env)
+      raise NestingError if @@_profile != @default_profile
+      @@_profile = Profile.new(name, env)
       @profiles << @@_profile
       begin
         block.call
