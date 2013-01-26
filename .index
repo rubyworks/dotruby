@@ -17,10 +17,6 @@ requirements:
   - test
   development: true
   name: ae
-- groups:
-  - build
-  development: true
-  name: detroit
 conflicts: []
 alternatives: []
 resources:
